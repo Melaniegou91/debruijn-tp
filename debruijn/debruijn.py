@@ -36,6 +36,7 @@ __maintainer__ = "Your Name"
 __email__ = "your@email.fr"
 __status__ = "Developpement"
 
+
 def isfile(path): # pragma: no cover
     """Check if path is an existing file.
 
@@ -81,7 +82,11 @@ def read_fastq(fastq_file):
     :param fastq_file: (str) Path to the fastq file.
     :return: A generator object that iterate the read sequences. 
     """
-    pass
+    with open(fastq_file, 'r') as file:
+        for line in file:
+            yield(next(file)).strip() # Permet de sauter la première ligne et récupére la deuxième
+            next(file)
+            next(file)
 
 
 def cut_kmer(read, kmer_size):
@@ -90,7 +95,8 @@ def cut_kmer(read, kmer_size):
     :param read: (str) Sequence of a read.
     :return: A generator object that iterate the kmers of of size kmer_size.
     """
-    pass
+    for i in range(len(read)-kmer_size+1) :
+        yield(read[i:i+kmer_size])
 
 
 def build_kmer_dict(fastq_file, kmer_size):
@@ -99,7 +105,14 @@ def build_kmer_dict(fastq_file, kmer_size):
     :param fastq_file: (str) Path to the fastq file.
     :return: A dictionnary object that identify all kmer occurrences.
     """
-    pass
+
+    kmer_counts = {}
+    for seq in read_fastq(fastq_file):
+        for i in cut_kmer(seq,kmer_size):
+            kmer_counts[i]=0
+        for i in cut_kmer(seq,kmer_size):
+            kmer_counts[i]+=1
+    return kmer_counts
 
 
 def build_graph(kmer_dict):
@@ -108,7 +121,10 @@ def build_graph(kmer_dict):
     :param kmer_dict: A dictionnary object that identify all kmer occurrences.
     :return: A directed graph (nx) of all kmer substring and weight (occurrence).
     """
-    pass
+    graphique = nx.DiGraph()
+    for k, v in kmer_dict.items():
+        graphique.add_edge(k[:-1], k[1:], weight=v)
+    return graphique
 
 
 def remove_paths(graph, path_list, delete_entry_node, delete_sink_node):
