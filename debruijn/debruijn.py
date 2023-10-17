@@ -137,7 +137,17 @@ def remove_paths(graph, path_list, delete_entry_node, delete_sink_node):
     :param delete_sink_node: (boolean) True->We remove the last node of a path
     :return: (nx.DiGraph) A directed graph object
     """
-    pass
+    for path in path_list:
+        if delete_entry_node and delete_sink_node:
+            graph.remove_nodes_from(path)
+        elif not delete_entry_node and not delete_sink_node:
+            graph.remove_nodes_from(path[1:-1])
+        elif not delete_entry_node and delete_sink_node : 
+            graph.remove_nodes_from(path[1:])
+        elif delete_entry_node and not delete_sink_node : 
+            graph.remove_nodes_from(path[:-1])
+    return graph
+            
 
 
 def select_best_path(graph, path_list, path_length, weight_avg_list, 
@@ -152,7 +162,23 @@ def select_best_path(graph, path_list, path_length, weight_avg_list,
     :param delete_sink_node: (boolean) True->We remove the last node of a path
     :return: (nx.DiGraph) A directed graph object
     """
-    pass
+    ecart_type = statistics.stdev(weight_avg_list)
+    if ecart_type > 0:
+        select = weight_avg_list.index(max(weight_avg_list))
+        path_list = path_list[:select]+path_list[select+1:]
+    else :
+        longueur = statistics.stdev(path_length)
+        if longueur > 0 :
+            select = path_length.index(max(path_length))
+            path_list = path_list[:select]+path_list[select+1:]
+        else : 
+            number_path = random.randint(0,len(path_list))
+            select = path_list[number_path]
+            path_list = path_list[:select]+path_list[select+1:]
+    graph = remove_paths(graph, path_list, delete_entry_node, delete_sink_node)
+    return graph
+
+
 
 def path_average_weight(graph, path):
     """Compute the weight of a path
@@ -171,7 +197,16 @@ def solve_bubble(graph, ancestor_node, descendant_node):
     :param descendant_node: (str) A downstream node in the graph
     :return: (nx.DiGraph) A directed graph object
     """
-    pass
+    path_length = []
+    weight_avg_list = []
+    path_list = list(nx.all_simple_paths(graph,ancestor_node,descendant_node))
+    for path in path_list :
+        path_length.append(len(path))
+        weight_avg_list.append(path_average_weight(graph,path))
+    
+    graph = select_best_path(graph, path_list, path_length, weight_avg_list, 
+                     delete_entry_node=False, delete_sink_node=False)
+    return graph
 
 def simplify_bubbles(graph):
     """Detect and explode bubbles
@@ -203,7 +238,13 @@ def get_starting_nodes(graph):
     :param graph: (nx.DiGraph) A directed graph object
     :return: (list) A list of all nodes without predecessors
     """
-    pass
+    nb_noeud = graph.nodes()
+    nodes_list = []
+    for i in nb_noeud : 
+        if len(list(graph.predecessors(i)))==0:
+            nodes_list.append(i)
+    return nodes_list
+
 
 def get_sink_nodes(graph):
     """Get nodes without successors
@@ -211,7 +252,13 @@ def get_sink_nodes(graph):
     :param graph: (nx.DiGraph) A directed graph object
     :return: (list) A list of all nodes without successors
     """
-    pass
+    nb_noeud = graph.nodes()
+    nodes_succ_list = []
+    for i in nb_noeud : 
+        if len(list(graph.successors(i)))==0:
+            nodes_succ_list.append(i)
+    return nodes_succ_list
+
 
 def get_contigs(graph, starting_nodes, ending_nodes):
     """Extract the contigs from the graph
@@ -221,7 +268,20 @@ def get_contigs(graph, starting_nodes, ending_nodes):
     :param ending_nodes: (list) A list of nodes without successors
     :return: (list) List of [contiguous sequence and their length]
     """
-    pass
+    contigus = []
+    for i in starting_nodes:
+        for j in ending_nodes : 
+            if nx.has_path(graph,i,j) ==  True:
+                paths = nx.all_simple_paths(graph,i,j)
+                for path in paths:
+                    contig = path[0]
+                    for node in path[1:]:
+                        contig+=node[-1]
+                    # sequence = nx.all_simple_paths(graph,i,j)[0]
+                    lenght = len(contig)
+                    contigus.append((contig,lenght))
+    return(contigus)
+                
 
 def save_contigs(contigs_list, output_file):
     """Write all contigs in fasta format
@@ -229,7 +289,12 @@ def save_contigs(contigs_list, output_file):
     :param contig_list: (list) List of [contiguous sequence and their length]
     :param output_file: (str) Path to the output file
     """
-    pass
+    with open("contigs.fasta","w") as file:
+        cpt = 0
+        for i in range(len(contigs_list)) :
+            file.write(f">contig_{cpt} len={contigs_list[i][1]}\n")
+            file.write(textwrap.fill(contigs_list[i][0], width=80))
+            cpt+=1
 
 
 def draw_graph(graph, graphimg_file): # pragma: no cover
