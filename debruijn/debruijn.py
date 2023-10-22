@@ -214,7 +214,25 @@ def simplify_bubbles(graph):
     :param graph: (nx.DiGraph) A directed graph object
     :return: (nx.DiGraph) A directed graph object
     """
-    pass
+    bubble = False
+    nodes = graph.nodes
+    for node in nodes :
+        liste_predecesseurs = list(graph.predecessors(node))
+        if len(liste_predecesseurs) > 1:
+            for i in range(len(liste_predecesseurs)):
+                for j in range(i + 1, len(liste_predecesseurs)):
+                    noeud_i = liste_predecesseurs[i]
+                    noeud_j = liste_predecesseurs[j]
+                    noeud_ancetre = nx.lowest_common_ancestor(graph, noeud_i, noeud_j)
+                    if noeud_ancetre != None:
+                        bubble = True
+                        break
+        if bubble == True:
+            break
+    if bubble:
+        graph = simplify_bubbles(solve_bubble(graph,noeud_ancetre,node))
+    return graph                  
+
 
 def solve_entry_tips(graph, starting_nodes):
     """Remove entry tips
@@ -336,7 +354,9 @@ def main(): # pragma: no cover
     # Plot the graph
     # if args.graphimg_file:
     #     draw_graph(graph, args.graphimg_file)
-
+    kmer_dict = build_kmer_dict(args.fastq_file, args.kmer_size)
+    graph = build_graph(kmer_dict)
+    simplify_bubbles(graph)
 
 if __name__ == '__main__': # pragma: no cover
     main()
